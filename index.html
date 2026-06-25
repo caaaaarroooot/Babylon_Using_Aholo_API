@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Babylon.js 3DGS Demo</title>
+    <style>
+      html,
+      body,
+      #renderCanvas {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: #1a1a2e;
+      }
+      #loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        font-size: 1rem;
+      }
+      #hud {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        right: 16px;
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        pointer-events: none;
+      }
+      #collision-status {
+        display: block;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.95rem;
+        max-width: 520px;
+      }
+      #collision-status strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      #collision-detail {
+        display: block;
+        font-size: 0.82rem;
+        opacity: 0.9;
+        line-height: 1.45;
+      }
+      #collision-status[data-state="hit"] {
+        border-color: #ff6b6b;
+        color: #ffd0d0;
+      }
+      #hud p {
+        margin: 8px 0 0;
+        font-size: 0.82rem;
+        opacity: 0.75;
+      }
+      #collider-toggles {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.88rem;
+        max-width: 520px;
+        pointer-events: auto;
+      }
+      #collider-toggles legend {
+        padding: 0 4px;
+        font-size: 0.82rem;
+        opacity: 0.85;
+      }
+      #collider-toggles label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      #collider-toggles input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #5ec8ff;
+        cursor: pointer;
+      }
+      #collider-toggles .swatch {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        flex-shrink: 0;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+      #collider-toggles .swatch.fixed {
+        background: #26bfff;
+      }
+      #collider-toggles .swatch.movable {
+        background: #ff7310;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">3DGS 모델 로딩 중...</div>
+    <div id="hud">
+      <div id="collision-status" data-state="idle">
+        <strong id="collision-title">충돌 검사 준비 중...</strong>
+        <span id="collision-detail"></span>
+      </div>
+      <fieldset id="collider-toggles">
+        <legend>Collision mesh 표시</legend>
+        <label>
+          <input type="checkbox" id="toggle-fixed" checked />
+          <span class="swatch fixed" aria-hidden="true"></span>
+          하늘색 — 고정 객체
+        </label>
+        <label>
+          <input type="checkbox" id="toggle-movable" checked />
+          <span class="swatch movable" aria-hidden="true"></span>
+          주황색 — 이동 객체
+        </label>
+      </fieldset>
+      <p>마우스: 시점 · WASD: 수평 이동 · Q/E: 수직 이동 · 충돌: Havok.</p>
+    </div>
+    <canvas id="renderCanvas"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

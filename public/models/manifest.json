@@ -1,0 +1,45 @@
+{
+  "source": "https://assets.babylonjs.com/splats/gs_Skull.splat",
+  "spz": "models/skull.spz",
+  "collisionGlb": "models/skull-voxel/collision.glb",
+  "tool": "@manycore/aholo-splat-transform",
+  "voxelMeta": {
+    "version": "1.2",
+    "gridBounds": {
+      "min": [
+        -1.76,
+        -0.9600000000000001,
+        -1.5999999999999999
+      ],
+      "max": [
+        1.76,
+        0.9599999999999999,
+        1.6000000000000003
+      ]
+    },
+    "sceneBounds": {
+      "min": [
+        -1.9363614421204425,
+        -0.9831127774545935,
+        -1.7803631008019971
+      ],
+      "max": [
+        2.027163526158957,
+        1.51409822879105,
+        1.7095911177783456
+      ]
+    },
+    "voxelResolution": 0.04,
+    "leafSize": 4,
+    "treeDepth": 5,
+    "numInteriorNodes": 293,
+    "numMixedLeaves": 1046,
+    "nodeCount": 1527,
+    "leafDataCount": 2092,
+    "files": [
+      "voxel.bin"
+    ],
+    "nodeEncoding": "raw",
+    "compression": "none"
+  }
+}

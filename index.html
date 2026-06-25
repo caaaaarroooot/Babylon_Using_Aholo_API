@@ -60,6 +60,24 @@
         font-size: 0.82rem;
         opacity: 0.75;
       }
+      #lod-status {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        font-size: 0.84rem;
+        min-width: 190px;
+        line-height: 1.5;
+      }
+      #lod-status strong {
+        display: block;
+        margin-bottom: 4px;
+      }
       #collider-toggles {
         margin-top: 10px;
         padding: 10px 14px;
@@ -125,6 +143,12 @@
         </label>
       </fieldset>
       <p>마우스: 시점 · WASD: 수평 이동 · Q/E: 수직 이동 · 충돌: Havok.</p>
+    </div>
+    <div id="lod-status">
+      <strong>Chunk LoD</strong>
+      <div>고정: <span id="lod-fixed-count">0</span></div>
+      <div>이동: <span id="lod-movable-count">0</span></div>
+      <div>총점: <span id="lod-total-count">0</span></div>
     </div>
     <canvas id="renderCanvas"></canvas>
     <script type="module" src="/src/main.ts"></script>

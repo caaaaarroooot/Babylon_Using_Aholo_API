@@ -1,4 +1,11 @@
-import { Scene, Vector3, AbstractMesh, Mesh, Quaternion, PhysicsViewer } from "@babylonjs/core";
+import {
+  Scene,
+  Vector3,
+  AbstractMesh,
+  Mesh,
+  Quaternion,
+  PhysicsViewer,
+} from "@babylonjs/core";
 import { ProximityCastResult } from "@babylonjs/core/Physics/proximityCastResult";
 import type { IPhysicsShapeProximityCastQuery } from "@babylonjs/core/Physics/physicsShapeProximityCastQuery";
 import { HavokPlugin } from "@babylonjs/core/Physics/v2/Plugins/havokPlugin";
@@ -130,7 +137,6 @@ export function attachHavokCollider(
 
   for (const child of targetMeshes) {
     if (!(child instanceof Mesh)) continue;
-
     child.computeWorldMatrix(true);
     const localPos = child.position.clone();
     const localRot = child.rotationQuaternion

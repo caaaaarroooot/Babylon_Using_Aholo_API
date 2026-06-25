@@ -14,7 +14,8 @@
   "dependencies": {
     "@babylonjs/core": "^8.0.0",
     "@babylonjs/havok": "^1.3.13",
-    "@babylonjs/loaders": "^8.0.0"
+    "@babylonjs/loaders": "^8.0.0",
+    "@manycore/aholo-viewer": "^1.5.1"
   },
   "devDependencies": {
     "@manycore/aholo-splat-transform": "^1.5.1",

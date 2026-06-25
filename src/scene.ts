@@ -18,8 +18,14 @@ import {
   setupWasdCollisionDemo,
 } from "./collisionDemo";
 import { enableHavokPhysics, HavokCollisionTracker } from "./havokCollision";
+import {
+  createAholoLodBridge,
+  createEmptyGaussianSplatMesh,
+  fetchLodMeta,
+  type AholoLodBridge,
+} from "./aholoLodBridge";
 
-const SKULL_SPZ = "/models/skull.spz";
+const SKULL_LOD_META = "/models/skull-lod/lod-meta.json";
 /** 통합 Aholo voxel collision (해골+받침대 미분리) */
 const UNIFIED_COLLISION_GLB = "/models/skull-voxel/collision.glb";
 
@@ -53,18 +59,16 @@ export async function createScene(canvas: HTMLCanvasElement) {
   const collisionTracker = new HavokCollisionTracker();
   const physicsViewer = new PhysicsViewer(scene);
 
-  const splatLoadOptions = {
-    pluginOptions: { splat: { flipY: false } },
-  };
-
-  const [fixedResult, movableResult, collisionResult] = await Promise.all([
-    ImportMeshAsync(SKULL_SPZ, scene, splatLoadOptions),
-    ImportMeshAsync(SKULL_SPZ, scene, splatLoadOptions),
+  const [lodMeta, collisionResult] = await Promise.all([
+    fetchLodMeta(SKULL_LOD_META),
     ImportMeshAsync(UNIFIED_COLLISION_GLB, scene),
   ]);
 
-  const fixedMesh = fixedResult.meshes[0] as Mesh;
-  const movableMesh = movableResult.meshes[0] as Mesh;
+  const fixedMesh = createEmptyGaussianSplatMesh(scene, "skullFixed");
+  const movableMesh = createEmptyGaussianSplatMesh(scene, "skullMovable");
+  // SPZ 기본 로더(importMeshAsync)와 동일하게 Y 축을 반전해 좌표계를 맞춘다.
+  fixedMesh.scaling.y *= -1;
+  movableMesh.scaling.y *= -1;
   fixedMesh.name = "skullFixed";
   movableMesh.name = "skullMovable";
 
@@ -82,8 +86,7 @@ export async function createScene(canvas: HTMLCanvasElement) {
   );
   movableMesh.position.set(movableOffsetX, 0, 0);
 
-  fixedMesh.refreshBoundingInfo({ applySkeleton: false });
-  camera.setTarget(fixedMesh.getBoundingInfo().boundingBox.centerWorld);
+  camera.setTarget(Vector3.Zero());
 
   const FIXED_COLOR = new Color3(0.15, 0.75, 1.0);
   const MOVABLE_COLOR = new Color3(1.0, 0.45, 0.05);
@@ -111,11 +114,22 @@ export async function createScene(canvas: HTMLCanvasElement) {
     ),
   };
 
+  const fixedLodBridge = createAholoLodBridge(scene, fixedMesh, SKULL_LOD_META, lodMeta, {
+    maxBudget: Math.floor(lodMeta.counts * 0.32),
+  });
+  const movableLodBridge = createAholoLodBridge(scene, movableMesh, SKULL_LOD_META, lodMeta, {
+    maxBudget: Math.floor(lodMeta.counts * 0.32),
+  });
+  const lodBridges: AholoLodBridge[] = [fixedLodBridge, movableLodBridge];
+
   const statusEl = document.getElementById("collision-status");
   const titleEl = document.getElementById("collision-title");
   const detailEl = document.getElementById("collision-detail");
   const fixedToggle = document.getElementById("toggle-fixed") as HTMLInputElement;
   const movableToggle = document.getElementById("toggle-movable") as HTMLInputElement;
+  const fixedLodCountEl = document.getElementById("lod-fixed-count");
+  const movableLodCountEl = document.getElementById("lod-movable-count");
+  const lodTotalCountEl = document.getElementById("lod-total-count");
 
   setupColliderVisibilityControls(collisionScene, fixedToggle, movableToggle);
 
@@ -125,6 +139,17 @@ export async function createScene(canvas: HTMLCanvasElement) {
     if (statusEl) {
       statusEl.dataset.state = hasCollision(hit) ? "hit" : "idle";
     }
+  });
+
+  scene.onBeforeRenderObservable.add(() => {
+    for (const bridge of lodBridges) {
+      bridge.tick(camera);
+    }
+    if (fixedLodCountEl) fixedLodCountEl.textContent = fixedLodBridge.stats.loadedCount.toLocaleString();
+    if (movableLodCountEl) {
+      movableLodCountEl.textContent = movableLodBridge.stats.loadedCount.toLocaleString();
+    }
+    if (lodTotalCountEl) lodTotalCountEl.textContent = lodMeta.counts.toLocaleString();
   });
 
   canvas.focus();

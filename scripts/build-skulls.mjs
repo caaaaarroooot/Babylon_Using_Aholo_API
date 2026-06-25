@@ -18,6 +18,7 @@ const modelsDir = join(root, "public", "models");
 const SKULL_URL = "https://assets.babylonjs.com/splats/gs_Skull.splat";
 const skullInput = join(tmpDir, "gs_Skull.splat");
 const skullSpz = join(modelsDir, "skull.spz");
+const skullLodDir = join(modelsDir, "skull-lod");
 const unifiedDir = join(modelsDir, "skull-voxel");
 const manifestPath = join(modelsDir, "manifest.json");
 
@@ -57,6 +58,30 @@ async function convertToSpz() {
   });
 }
 
+async function generateChunkLod() {
+  console.log("Aholo splat-transform: chunk-lod ->", skullLodDir);
+  await runner({
+    version: 1,
+    tasks: [
+      {
+        id: "0",
+        type: "Read",
+        config: { inputs: [skullInput], output: "cache0" },
+      },
+      {
+        id: "1",
+        type: "AutoChunkLod",
+        config: {
+          input: "cache0",
+          output: skullLodDir,
+          type: "spz",
+          maxChunkCounts: 25000,
+        },
+      },
+    ],
+  });
+}
+
 async function generateVoxel(label, outputDir, box) {
   console.log(`Aholo splat-transform: voxel [${label}] -> ${outputDir}`);
   await runner({
@@ -88,6 +113,7 @@ async function generateVoxel(label, outputDir, box) {
 
 await downloadSkull();
 await convertToSpz();
+await generateChunkLod();
 
 /** 통합 collision mesh — 해골+받침대 분리 없이 전체를 1개 mesh로 */
 await generateVoxel("unified", unifiedDir, {
@@ -108,6 +134,7 @@ await generateVoxel("unified", unifiedDir, {
 const manifest = {
   source: SKULL_URL,
   spz: "models/skull.spz",
+  lodMeta: "models/skull-lod/lod-meta.json",
   collisionGlb: "models/skull-voxel/collision.glb",
   tool: "@manycore/aholo-splat-transform",
   // splitY: SPLIT_Y,

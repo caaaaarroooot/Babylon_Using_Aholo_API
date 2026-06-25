@@ -1,0 +1,60 @@
+=== GitHub Push Log ===
+Timestamp: 2026-06-25T16:16:56.142362+09:00
+Project: C:\Users\Administrator\babylon-3dgs-demo-copy
+
+--- Step 1: git status ---
+On branch master
+Your branch is up to date with 'origin/master'.
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.tools/
+	scripts/push-github.ps1
+	write-log.ps1
+
+nothing added to commit but untracked files present (use "git add" to track)
+
+--- Step 1: git log -1 ---
+commit c42b62e79357c7ddb512ad6bb97ff664144633f9
+Author: caaaaattoooot <12jiyun@gmail.com>
+Date:   Thu Jun 25 16:03:05 2026 +0900
+
+    Initial commit: Babylon 3DGS demo with Aholo voxel collision, Havok physics, full SPZ load - LoD rolled back, collision demo.
+
+--- Step 1: git remote -v ---
+origin	https://github.com/caaaaarroooot/Babylon_Using_Aholo_API.git (fetch)
+origin	https://github.com/caaaaarroooot/Babylon_Using_Aholo_API.git (push)
+
+--- Step 2: gh auth status ---
+You are not logged into any GitHub hosts. To log in, run: gh auth login
+
+--- Step 3: gh repo view jonghyun3119/babylon-3dgs-demo-copy ---
+To get started with GitHub CLI, please run:  gh auth login
+Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
+
+--- git ls-remote origin ---
+c42b62e79357c7ddb512ad6bb97ff664144633f9	HEAD
+c42b62e79357c7ddb512ad6bb97ff664144633f9	refs/heads/master
+
+--- git push -u origin master ---
+branch 'master' set up to track 'origin/master'.
+Everything up-to-date
+
+--- Step 4: git remote -v (after push) ---
+origin	https://github.com/caaaaarroooot/Babylon_Using_Aholo_API.git (fetch)
+origin	https://github.com/caaaaarroooot/Babylon_Using_Aholo_API.git (push)
+
+--- Step 4: gh repo view --json url,visibility ---
+To get started with GitHub CLI, please run:  gh auth login
+Alternatively, populate the GH_TOKEN environment variable with a GitHub API authentication token.
+
+--- Summary ---
+PATH gh: not found; portable gh at C:\Users\Administrator\babylon-3dgs-demo-copy\.tools\gh\gh.exe
+Requested: https://github.com/jonghyun3119/babylon-3dgs-demo-copy — NOT created (gh auth required)
+jonghyun3119 repo existed: UNKNOWN
+Current origin: https://github.com/caaaaarroooot/Babylon_Using_Aholo_API.git
+Commit pushed/at remote: c42b62e79357c7ddb512ad6bb97ff664144633f9
+Push result: Everything up-to-date on origin/master
+BLOCKER: gh auth login or GH_TOKEN for creating jonghyun3119/babylon-3dgs-demo-copy
+Final URL (requested): N/A
+Final URL (current origin): https://github.com/caaaaarroooot/Babylon_Using_Aholo_API

@@ -14,6 +14,7 @@ import {
   tuneEnginePerformance,
 } from "./renderPerformance";
 import { setupLodStatusHud } from "./lodStatusHud";
+import { setupPerfHud } from "./perfHud";
 import { loadGaussianWithLodFallback } from "./splatLoader";
 import { attachVoxelOverlay } from "./voxelOverlay";
 
@@ -116,6 +117,7 @@ export async function createScene(canvas: HTMLCanvasElement) {
   scheduleInteriorCameraRefine(camera, mesh, scene);
   setupKeyboardCameraControls(scene, camera, canvas);
   setupLodStatusHud(scene, lodBridge);
+  setupPerfHud(scene, engine, lodBridge);
 
   let collisionNote = "collision mesh 없음 — npm run preprocess:warehouse:voxel";
   const collisionToggle = document.getElementById("toggle-collision") as HTMLInputElement | null;

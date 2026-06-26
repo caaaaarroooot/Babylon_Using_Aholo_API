@@ -90,6 +90,48 @@
         opacity: 0.85;
         margin-top: 2px;
       }
+      #perf-status {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        font-size: 0.84rem;
+        min-width: 200px;
+        line-height: 1.5;
+        pointer-events: none;
+      }
+      #perf-status strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+      #perf-status span {
+        display: block;
+        font-variant-numeric: tabular-nums;
+      }
+      #perf-fps {
+        font-size: 1.35rem;
+        font-weight: 600;
+      }
+      #perf-fps[data-level="good"] {
+        color: #7dffa8;
+      }
+      #perf-fps[data-level="mid"] {
+        color: #ffd966;
+      }
+      #perf-fps[data-level="low"] {
+        color: #ff8a8a;
+      }
+      #perf-frame,
+      #perf-resolution,
+      #perf-splats {
+        font-size: 0.8rem;
+        opacity: 0.9;
+      }
       #collider-toggles {
         margin-top: 10px;
         padding: 10px 14px;
@@ -233,6 +275,13 @@
       <strong>LoD 스플랫</strong>
       <span id="lod-status-loaded">—</span>
       <span id="lod-status-pct">—</span>
+    </div>
+    <div id="perf-status" hidden>
+      <strong>성능 / 화질</strong>
+      <span id="perf-fps">— fps</span>
+      <span id="perf-frame">— ms</span>
+      <span id="perf-resolution">—</span>
+      <span id="perf-splats">—</span>
     </div>
     <canvas id="renderCanvas"></canvas>
     <script type="module" src="/src/main.ts"></script>

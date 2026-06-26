@@ -24,4 +24,7 @@ Thumbs.db
 
 # Local IOB models (splat / sog / glb) — do not push to GitHub
 public/models/iob/
+public/models/iob-lod/
+public/models/iob-voxel/
+public/models/iob-outliers/
 copy-result.txt

@@ -78,6 +78,18 @@
         display: block;
         margin-bottom: 4px;
       }
+      #lod-status span {
+        display: block;
+      }
+      #lod-status #lod-status-loaded {
+        font-size: 1rem;
+        font-variant-numeric: tabular-nums;
+      }
+      #lod-status #lod-status-pct {
+        font-size: 0.82rem;
+        opacity: 0.85;
+        margin-top: 2px;
+      }
       #collider-toggles {
         margin-top: 10px;
         padding: 10px 14px;
@@ -120,6 +132,83 @@
       #collider-toggles .swatch.movable {
         background: #ff7310;
       }
+      #model-switcher {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.88rem;
+        max-width: 520px;
+        pointer-events: auto;
+      }
+      #model-switcher legend {
+        padding: 0 4px;
+        font-size: 0.82rem;
+        opacity: 0.85;
+      }
+      #model-switcher label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      #model-switcher input[type="radio"],
+      #model-switcher input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #5ec8ff;
+        cursor: pointer;
+      }
+      #model-switcher .hint {
+        margin: 8px 0 0;
+        font-size: 0.78rem;
+        opacity: 0.7;
+        line-height: 1.4;
+      }
+      #collision-toggles {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.88rem;
+        max-width: 520px;
+        pointer-events: auto;
+      }
+      #collision-toggles legend {
+        padding: 0 4px;
+        font-size: 0.82rem;
+        opacity: 0.85;
+      }
+      #collision-toggles label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      #collision-toggles input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #5ec8ff;
+        cursor: pointer;
+      }
+      #collision-toggles .swatch.collision {
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        background: #26bfff;
+        border: 1px solid rgba(255, 255, 255, 0.35);
+      }
+      #collision-toggles .hint {
+        margin: 8px 0 0;
+        font-size: 0.78rem;
+        opacity: 0.7;
+      }
     </style>
   </head>
   <body>
@@ -129,26 +218,21 @@
         <strong id="collision-title">충돌 검사 준비 중...</strong>
         <span id="collision-detail"></span>
       </div>
-      <fieldset id="collider-toggles">
-        <legend>Collision mesh 표시</legend>
+      <p>3Dcam 창고 SOG · WASD/화살표 · 탭 전환 시 렌더 중지</p>
+      <fieldset id="collision-toggles">
+        <legend>Collision mesh (voxel)</legend>
         <label>
-          <input type="checkbox" id="toggle-fixed" checked />
-          <span class="swatch fixed" aria-hidden="true"></span>
-          하늘색 — 고정 객체
+          <input type="checkbox" id="toggle-collision" checked />
+          <span class="swatch collision" aria-hidden="true"></span>
+          반투명 와이어 — 해골 고정 객체와 동일 방식
         </label>
-        <label>
-          <input type="checkbox" id="toggle-movable" checked />
-          <span class="swatch movable" aria-hidden="true"></span>
-          주황색 — 이동 객체
-        </label>
+        <p class="hint">전처리: <code>npm run preprocess:warehouse:voxel</code> · 구역이 비면 기존 collision.glb 삭제 후 재생성</p>
       </fieldset>
-      <p>마우스: 시점 · WASD: 수평 이동 · Q/E: 수직 이동 · 충돌: Havok.</p>
     </div>
-    <div id="lod-status">
-      <strong>Chunk LoD</strong>
-      <div>고정: <span id="lod-fixed-count">0</span></div>
-      <div>이동: <span id="lod-movable-count">0</span></div>
-      <div>총점: <span id="lod-total-count">0</span></div>
+    <div id="lod-status" hidden>
+      <strong>LoD 스플랫</strong>
+      <span id="lod-status-loaded">—</span>
+      <span id="lod-status-pct">—</span>
     </div>
     <canvas id="renderCanvas"></canvas>
     <script type="module" src="/src/main.ts"></script>

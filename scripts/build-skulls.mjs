@@ -73,10 +73,15 @@ async function generateChunkLod() {
         type: "AutoChunkLod",
         config: {
           input: "cache0",
-          output: skullLodDir,
+          output: "lodBundle",
           type: "spz",
           maxChunkCounts: 25000,
         },
+      },
+      {
+        id: "2",
+        type: "Write",
+        config: { input: "lodBundle", output: skullLodDir },
       },
     ],
   });

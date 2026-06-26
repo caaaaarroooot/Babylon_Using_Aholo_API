@@ -1,6 +1,7 @@
 {
   "source": "https://assets.babylonjs.com/splats/gs_Skull.splat",
   "spz": "models/skull.spz",
+  "lodMeta": "models/skull-lod/lod-meta.json",
   "collisionGlb": "models/skull-voxel/collision.glb",
   "tool": "@manycore/aholo-splat-transform",
   "voxelMeta": {

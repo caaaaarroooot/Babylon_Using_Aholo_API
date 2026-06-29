@@ -3,13 +3,11 @@ import { ImportMeshAsync } from "@babylonjs/core/Loading/sceneLoader";
 import type { AbstractMesh } from "@babylonjs/core/Meshes/abstractMesh";
 import type { Scene } from "@babylonjs/core/scene";
 import {
-  //   createAholoLodBridge,
-  createAholoMultiMeshBridge,
+  createAholoLodBridge,
   createEmptyGaussianSplatMesh,
   fetchLodMeta,
   type AholoLodBridge,
-  // } from "./aholoLodBridge";
-} from "./aholoMultiMeshBridge";
+} from "./aholoLodBridge";
 import { tuneSplatMesh } from "./renderPerformance";
 
 const SPLAT_LOAD_OPTIONS = {
@@ -27,7 +25,7 @@ export type LoadedGaussian = {
 export async function loadGaussianDirect(
   scene: Scene,
   def: { name: string; url: string },
-  options?: { flipScaleY?: boolean },
+  options?: { flipScaleY?: boolean }
 ): Promise<AbstractMesh> {
   const result = await ImportMeshAsync(def.url, scene, SPLAT_LOAD_OPTIONS);
   const mesh = result.meshes[0];
@@ -45,7 +43,7 @@ export async function loadGaussianDirect(
 export async function loadGaussianWithLodFallback(
   scene: Scene,
   _camera: ArcRotateCamera,
-  def: { name: string; url: string; lodMetaUrl: string },
+  def: { name: string; url: string; lodMetaUrl: string }
 ): Promise<LoadedGaussian> {
   try {
     const lodMeta = await fetchLodMeta(def.lodMetaUrl);
@@ -53,29 +51,18 @@ export async function loadGaussianWithLodFallback(
     mesh.scaling.y *= -1;
     mesh.name = def.name;
 
-    const calculatedBudget = Math.max(
-      18_000,
-      Math.floor(lodMeta.counts * LOD_BUDGET_RATIO),
-    );
-
+    const calculatedBudget = Math.max(18_000, Math.floor(lodMeta.counts * LOD_BUDGET_RATIO));
+    
     // 2. 콘솔에 모델 이름, 계산된 예산, 전체 갯수를 예쁘게 띄워줍니다.
-    console.log(
-      `🔥 [LoD Budget] ${def.name} 모델 -> maxBudget: ${calculatedBudget} (전체 점: ${lodMeta.counts}개)`,
-    );
+    console.log(`🔥 [LoD Budget] ${def.name} 모델 -> maxBudget: ${calculatedBudget} (전체 점: ${lodMeta.counts}개)`);
 
-    const lodBridge = createAholoMultiMeshBridge(
-      scene,
-      mesh,
-      def.lodMetaUrl,
-      lodMeta,
-      {
-        //   maxBudget: Math.min(
-        //     28_000,
-        //     Math.max(18_000, Math.floor(lodMeta.counts * LOD_BUDGET_RATIO))
-        //   ),
-        maxBudget: calculatedBudget,
-      },
-    );
+    const lodBridge = createAholoLodBridge(scene, mesh, def.lodMetaUrl, lodMeta, {
+    //   maxBudget: Math.min(
+    //     28_000,
+    //     Math.max(18_000, Math.floor(lodMeta.counts * LOD_BUDGET_RATIO))
+    //   ),
+    maxBudget:calculatedBudget,
+    });
     tuneSplatMesh(mesh, true);
     return { mesh, lodBridge };
   } catch (err) {

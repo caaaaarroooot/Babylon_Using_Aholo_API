@@ -24,6 +24,7 @@ import {
   LAYER_ALL,
   LAYER_DIRECT,
   LAYER_LOD,
+  LAYER_SPLIT_BOTH,
   setMeshRenderLayer,
   syncArcRotateCamera,
 } from "./splitView";
@@ -57,56 +58,64 @@ const SCENE_LABELS: Record<SceneId, string> = {
 };
 
 const WAREHOUSE_COLLISION_GLB = "/models/iob-voxel/warehouse/collision.glb";
+const MC_IN_1F_COLLISION_GLB = "/models/iob-voxel/mc-in-1f/collision.glb";
 
-const INTERIOR_CAMERA = {
+type InteriorCameraPreset = {
+  alpha: number;
+  beta: number;
+  targetHeightRatio: number;
+  radiusRatio: number;
+  lowerRadiusScale: number;
+  upperRadiusScale: number;
+};
+
+const WAREHOUSE_CAMERA: InteriorCameraPreset = {
   alpha: -Math.PI / 2,
   beta: Math.PI / 2.05,
   targetHeightRatio: 0.38,
   radiusRatio: 0.42,
+  lowerRadiusScale: 0.15,
+  upperRadiusScale: 2.5,
+};
+
+/** 1층 — collision 볼륨 안쪽에서 시작 */
+const MC_IN_1F_CAMERA: InteriorCameraPreset = {
+  alpha: -Math.PI / 2,
+  beta: Math.PI / 2.05,
+  targetHeightRatio: 0.32,
+  radiusRatio: 0.12,
+  lowerRadiusScale: 0.06,
+  upperRadiusScale: 0.5,
 };
 
 function getCompareSet(sceneId: SceneId): CompareSet {
   return sceneId === "warehouse" ? "warehouse" : "mcIn1F";
 }
 
-function frameInteriorCamera(camera: ArcRotateCamera, mesh: AbstractMesh) {
-  mesh.computeWorldMatrix(true);
-  const { minimumWorld: min, maximumWorld: max } = mesh.getBoundingInfo().boundingBox;
+function frameInteriorCamera(
+  camera: ArcRotateCamera,
+  boundsMesh: AbstractMesh,
+  preset: InteriorCameraPreset
+) {
+  boundsMesh.computeWorldMatrix(true);
+  const { minimumWorld: min, maximumWorld: max } = boundsMesh.getBoundingInfo().boundingBox;
   const extent = max.subtract(min);
 
   const target = new Vector3(
     (min.x + max.x) * 0.5,
-    min.y + extent.y * INTERIOR_CAMERA.targetHeightRatio,
+    min.y + extent.y * preset.targetHeightRatio,
     (min.z + max.z) * 0.5
   );
 
   const horizontalSpan = Math.max(Math.min(extent.x, extent.z), 0.5);
-  const radius = Math.max(horizontalSpan * INTERIOR_CAMERA.radiusRatio, 1.5);
-  const maxExtent = Math.max(extent.x, extent.y, extent.z, 1);
+  const radius = Math.max(horizontalSpan * preset.radiusRatio, 0.6);
 
-  camera.alpha = INTERIOR_CAMERA.alpha;
-  camera.beta = INTERIOR_CAMERA.beta;
+  camera.alpha = preset.alpha;
+  camera.beta = preset.beta;
   camera.setTarget(target);
   camera.radius = radius;
-  camera.lowerRadiusLimit = Math.max(radius * 0.15, 0.5);
-  camera.upperRadiusLimit = maxExtent * 2.5;
-}
-
-function scheduleInteriorCameraRefine(
-  primary: ArcRotateCamera,
-  secondary: ArcRotateCamera | null,
-  mesh: AbstractMesh,
-  scene: Scene
-) {
-  let frames = 0;
-  const observer = scene.onAfterRenderObservable.add(() => {
-    frames += 1;
-    if (frames >= 3) {
-      frameInteriorCamera(primary, mesh);
-      if (secondary) frameInteriorCamera(secondary, mesh);
-      scene.onAfterRenderObservable.remove(observer);
-    }
-  });
+  camera.lowerRadiusLimit = Math.max(horizontalSpan * preset.lowerRadiusScale, 0.35);
+  camera.upperRadiusLimit = Math.max(horizontalSpan * preset.upperRadiusScale, radius * 1.8);
 }
 
 function setHudText(title: string, detail: string) {
@@ -135,8 +144,8 @@ export async function createScene(canvas: HTMLCanvasElement) {
 
   const camera = new ArcRotateCamera(
     "camera",
-    INTERIOR_CAMERA.alpha,
-    INTERIOR_CAMERA.beta,
+    WAREHOUSE_CAMERA.alpha,
+    WAREHOUSE_CAMERA.beta,
     8,
     Vector3.Zero(),
     scene
@@ -166,8 +175,48 @@ export async function createScene(canvas: HTMLCanvasElement) {
   let mcIn1FLodBridge: AholoLodBridge | null = null;
   let mcIn1FLodLoadPromise: Promise<AbstractMesh> | null = null;
 
-  let collisionOverlay: VoxelOverlay | null = null;
-  let collisionNote = "collision mesh 없음 — npm run preprocess:warehouse:voxel";
+  let warehouseCollision: VoxelOverlay | null = null;
+  let mcIn1FCollision: VoxelOverlay | null = null;
+  let mcIn1FCollisionAnchor: AbstractMesh | null = null;
+  let mcIn1FCollisionLoadPromise: Promise<VoxelOverlay | null> | null = null;
+  let warehouseCollisionNote = "collision mesh 없음 — npm run preprocess:warehouse:voxel";
+  let mcIn1FCollisionNote = "collision mesh 없음 — npm run preprocess:mc-in-1f:voxel";
+
+  const setOverlayLayer = (overlay: VoxelOverlay, layer: number) => {
+    setMeshRenderLayer(overlay.root, layer);
+    for (const mesh of overlay.meshes) {
+      setMeshRenderLayer(mesh, layer);
+    }
+  };
+
+  const getActiveCollisionSet = (): CompareSet | null => {
+    if (activeScene === "warehouse" || activeScene === "mcIn1F" || activeScene === "mcIn1FLod") {
+      return getCompareSet(activeScene);
+    }
+    return null;
+  };
+
+  const isCollisionChecked = () => collisionToggle?.checked ?? false;
+
+  const refreshCollisionDisplay = () => {
+    const set = getActiveCollisionSet();
+    const checked = isCollisionChecked();
+
+    warehouseCollision?.setVisible(set === "warehouse" && checked);
+    mcIn1FCollision?.setVisible(set === "mcIn1F" && checked);
+
+    if (!set || !checked) return;
+
+    const overlay = set === "warehouse" ? warehouseCollision : mcIn1FCollision;
+    if (!overlay) return;
+
+    if (splitCompareEnabled) {
+      const layer = set === "mcIn1F" ? LAYER_SPLIT_BOTH : LAYER_LOD;
+      setOverlayLayer(overlay, layer);
+    } else {
+      setOverlayLayer(overlay, LAYER_ALL);
+    }
+  };
 
   const allSplatMeshes = (): AbstractMesh[] =>
     [warehouseMesh, warehouseDirectMesh, mcIn1FMesh, mcIn1FLodMesh].filter(
@@ -193,9 +242,13 @@ export async function createScene(canvas: HTMLCanvasElement) {
     const sceneLabel = SCENE_LABELS[activeScene];
 
     if (splitCompareEnabled) {
+      const collisionHint =
+        getActiveCollisionSet() === "mcIn1F" && mcIn1FCollision
+          ? " · collision 와이어 (좌·우)"
+          : "";
       setHudText(
         `${sceneLabel} · 화면 분할`,
-        `좌 Chunk LoD · 우 직접 로드 · 카메라 동기화 · ${formatPerfLabel(hasLod)}`
+        `좌 Chunk LoD · 우 직접 로드 · 카메라 동기화${collisionHint} · ${formatPerfLabel(hasLod)}`
       );
       tuneEnginePerformance(engine, hasLod);
       return;
@@ -203,12 +256,21 @@ export async function createScene(canvas: HTMLCanvasElement) {
 
     if (activeScene === "warehouse") {
       const lodNote = hasLod ? "Chunk LoD 적용" : "LoD 없음";
-      setHudText(SCENE_LABELS.warehouse, `${lodNote} · ${collisionNote} · ${formatPerfLabel(hasLod)}`);
+      setHudText(
+        SCENE_LABELS.warehouse,
+        `${lodNote} · ${warehouseCollisionNote} · ${formatPerfLabel(hasLod)}`
+      );
     } else if (activeScene === "mcIn1FLod") {
       const lodNote = hasLod ? "Chunk LoD 적용" : "LoD 없음 (preprocess:iob 권장)";
-      setHudText(SCENE_LABELS.mcIn1FLod, `${lodNote} · ${formatPerfLabel(hasLod)}`);
+      setHudText(
+        SCENE_LABELS.mcIn1FLod,
+        `${lodNote} · ${mcIn1FCollisionNote} · ${formatPerfLabel(hasLod)}`
+      );
     } else {
-      setHudText(SCENE_LABELS.mcIn1F, `LoD 없음 · 직접 로드 · ${formatPerfLabel(false)}`);
+      setHudText(
+        SCENE_LABELS.mcIn1F,
+        `LoD 없음 · 직접 로드 · ${mcIn1FCollisionNote} · ${formatPerfLabel(false)}`
+      );
     }
 
     tuneEnginePerformance(engine, hasLod);
@@ -219,19 +281,47 @@ export async function createScene(canvas: HTMLCanvasElement) {
     if (fieldset) fieldset.hidden = !visible;
   };
 
-  const applyCollisionLayers = (layer: number) => {
-    if (!collisionOverlay) return;
-    setMeshRenderLayer(collisionOverlay.root, layer);
-    for (const mesh of collisionOverlay.meshes) {
-      setMeshRenderLayer(mesh, layer);
-    }
-  };
-
   const hideAllSplats = () => {
     for (const mesh of allSplatMeshes()) {
       mesh.isVisible = false;
       mesh.layerMask = LAYER_ALL;
     }
+  };
+
+  const getFramingBoundsMesh = (focusMesh: AbstractMesh): AbstractMesh => {
+    if (getCompareSet(activeScene) === "mcIn1F" && mcIn1FCollision) {
+      return mcIn1FCollision.root;
+    }
+    return focusMesh;
+  };
+
+  const getFramingPreset = (): InteriorCameraPreset =>
+    getCompareSet(activeScene) === "mcIn1F" ? MC_IN_1F_CAMERA : WAREHOUSE_CAMERA;
+
+  const frameCamerasForScene = (
+    focusMesh: AbstractMesh,
+    primary: ArcRotateCamera,
+    secondary: ArcRotateCamera | null = null
+  ) => {
+    const boundsMesh = getFramingBoundsMesh(focusMesh);
+    const preset = getFramingPreset();
+    frameInteriorCamera(primary, boundsMesh, preset);
+    if (secondary) frameInteriorCamera(secondary, boundsMesh, preset);
+  };
+
+  const scheduleCameraRefine = (
+    focusMesh: AbstractMesh,
+    primary: ArcRotateCamera,
+    secondary: ArcRotateCamera | null
+  ) => {
+    let frames = 0;
+    const observer = scene.onAfterRenderObservable.add(() => {
+      frames += 1;
+      if (frames >= 3) {
+        frameCamerasForScene(focusMesh, primary, secondary);
+        scene.onAfterRenderObservable.remove(observer);
+      }
+    });
   };
 
   const applySingleView = (focusMesh: AbstractMesh) => {
@@ -241,20 +331,17 @@ export async function createScene(canvas: HTMLCanvasElement) {
 
     if (activeScene === "warehouse") {
       warehouseMesh.isVisible = true;
-      collisionOverlay?.setVisible(true);
-      applyCollisionLayers(LAYER_ALL);
     } else if (activeScene === "mcIn1F") {
       mcIn1FMesh!.isVisible = true;
-      collisionOverlay?.setVisible(false);
     } else {
       mcIn1FLodMesh!.isVisible = true;
-      collisionOverlay?.setVisible(false);
     }
 
-    frameInteriorCamera(camera, focusMesh);
-    scheduleInteriorCameraRefine(camera, null, focusMesh, scene);
+    refreshCollisionDisplay();
+    frameCamerasForScene(focusMesh, camera);
+    scheduleCameraRefine(focusMesh, camera, null);
     updateSceneHud();
-    setCollisionPanelVisible(activeScene === "warehouse");
+    setCollisionPanelVisible(getActiveCollisionSet() !== null);
   };
 
   const applySplitView = async () => {
@@ -279,30 +366,31 @@ export async function createScene(canvas: HTMLCanvasElement) {
     setMeshRenderLayer(pair.lodMesh, LAYER_LOD);
     setMeshRenderLayer(pair.directMesh, LAYER_DIRECT);
 
-    if (compareSet === "warehouse" && collisionOverlay) {
-      const collisionToggle = document.getElementById("toggle-collision") as HTMLInputElement | null;
-      collisionOverlay.setVisible(collisionToggle?.checked ?? true);
-      applyCollisionLayers(LAYER_LOD);
-    } else {
-      collisionOverlay?.setVisible(false);
+    if (compareSet === "mcIn1F") {
+      await ensureMcIn1FCollision();
     }
+
+    refreshCollisionDisplay();
 
     syncArcRotateCamera(camera, rightCamera);
     enableSplitView(scene, camera, rightCamera);
     setSplitLabelsVisible(true);
 
-    frameInteriorCamera(camera, pair.lodMesh);
-    frameInteriorCamera(rightCamera, pair.lodMesh);
-    scheduleInteriorCameraRefine(camera, rightCamera, pair.lodMesh, scene);
+    frameCamerasForScene(pair.lodMesh, camera, rightCamera);
+    scheduleCameraRefine(pair.lodMesh, camera, rightCamera);
 
     updateSceneHud();
-    setCollisionPanelVisible(compareSet === "warehouse");
+    setCollisionPanelVisible(true);
   };
 
   const applyDisplayState = async (focusMesh?: AbstractMesh) => {
     if (splitCompareEnabled) {
       await applySplitView();
       return;
+    }
+
+    if (activeScene === "mcIn1F" || activeScene === "mcIn1FLod") {
+      await ensureMcIn1FCollision();
     }
 
     let mesh = focusMesh ?? warehouseMesh;
@@ -318,8 +406,8 @@ export async function createScene(canvas: HTMLCanvasElement) {
   warehouseLodBridge = warehouseLoaded.lodBridge;
   warehouseMesh.renderingGroupId = 0;
 
-  frameInteriorCamera(camera, warehouseMesh);
-  scheduleInteriorCameraRefine(camera, null, warehouseMesh, scene);
+  frameInteriorCamera(camera, warehouseMesh, WAREHOUSE_CAMERA);
+  scheduleCameraRefine(warehouseMesh, camera, null);
   setupKeyboardCameraControls(scene, camera, canvas);
   setupLodStatusHud(scene, getActiveLodBridge);
   setupPerfHud(scene, engine, getActiveLodBridge);
@@ -334,27 +422,77 @@ export async function createScene(canvas: HTMLCanvasElement) {
 
   const collisionToggle = document.getElementById("toggle-collision") as HTMLInputElement | null;
   try {
-    collisionOverlay = await attachVoxelOverlay(scene, warehouseMesh, WAREHOUSE_COLLISION_GLB, {
+    warehouseCollision = await attachVoxelOverlay(scene, warehouseMesh, WAREHOUSE_COLLISION_GLB, {
       label: "warehouseCollision",
     });
-    collisionNote = "반투명 collision 와이어 (voxel mesh)";
-    collisionToggle?.addEventListener("change", () => {
-      if (activeScene !== "warehouse" && !splitCompareEnabled) return;
-      if (getCompareSet(activeScene) !== "warehouse") return;
-      collisionOverlay?.setVisible(collisionToggle.checked);
-      warehouseMesh.isVisible = true;
-    });
+    warehouseCollisionNote = "반투명 collision 와이어 (voxel mesh)";
     if (collisionToggle) {
       collisionToggle.checked = true;
-      collisionOverlay.setVisible(true);
     }
   } catch (err) {
-    console.warn("[collision]", err);
-    if (collisionToggle) {
-      collisionToggle.disabled = true;
-      collisionToggle.checked = false;
-    }
+    console.warn("[collision] warehouse", err);
   }
+
+  collisionToggle?.addEventListener("change", () => {
+    refreshCollisionDisplay();
+    if (activeScene === "warehouse" || splitCompareEnabled) {
+      warehouseMesh.isVisible = true;
+    }
+  });
+
+  if (collisionToggle && !warehouseCollision && !mcIn1FCollision) {
+    collisionToggle.disabled = true;
+    collisionToggle.checked = false;
+  } else if (collisionToggle && warehouseCollision) {
+    warehouseCollision.setVisible(true);
+  }
+
+  const resolveMcIn1FCollisionAnchor = async (): Promise<AbstractMesh> => {
+    if (splitCompareEnabled || activeScene === "mcIn1FLod") {
+      return mcIn1FLodMesh ?? (await ensureMcIn1FLod());
+    }
+    return mcIn1FMesh ?? (await ensureMcIn1F());
+  };
+
+  const ensureMcIn1FCollision = async (): Promise<VoxelOverlay | null> => {
+    let anchor: AbstractMesh;
+    try {
+      anchor = await resolveMcIn1FCollisionAnchor();
+    } catch {
+      return null;
+    }
+
+    if (mcIn1FCollision && mcIn1FCollisionAnchor === anchor) {
+      return mcIn1FCollision;
+    }
+
+    if (mcIn1FCollision) {
+      mcIn1FCollision.dispose();
+      mcIn1FCollision = null;
+      mcIn1FCollisionLoadPromise = null;
+    }
+
+    if (!mcIn1FCollisionLoadPromise) {
+      mcIn1FCollisionLoadPromise = (async () => {
+        const overlay = await attachVoxelOverlay(scene, anchor, MC_IN_1F_COLLISION_GLB, {
+          label: "mcIn1FCollision",
+        });
+        mcIn1FCollision = overlay;
+        mcIn1FCollisionAnchor = anchor;
+        mcIn1FCollisionNote = "반투명 collision 와이어 (1층 voxel)";
+        overlay.setVisible(false);
+        if (collisionToggle) collisionToggle.disabled = false;
+        return overlay;
+      })().catch((err) => {
+        console.warn("[collision] mc-in-1f", err);
+        mcIn1FCollisionNote = "collision 없음 — npm run preprocess:mc-in-1f:voxel";
+        mcIn1FCollisionLoadPromise = null;
+        mcIn1FCollisionAnchor = null;
+        return null;
+      });
+    }
+    return mcIn1FCollisionLoadPromise;
+  };
 
   updateSceneHud();
 
@@ -424,7 +562,10 @@ export async function createScene(canvas: HTMLCanvasElement) {
     if (next === activeScene && !splitCompareEnabled) return;
 
     try {
-      if (next === "mcIn1F") await ensureMcIn1F();
+      if (next === "mcIn1F") {
+        await ensureMcIn1F();
+        await ensureMcIn1FCollision();
+      }
       if (next === "mcIn1FLod") await ensureMcIn1FLod();
 
       activeScene = next;

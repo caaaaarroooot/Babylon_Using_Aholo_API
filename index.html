@@ -324,13 +324,16 @@
         </label>
       </fieldset>
       <fieldset id="collision-toggles">
-        <legend>Collision mesh (voxel)</legend>
+        <legend>Collision mesh (voxel 와이어)</legend>
         <label>
           <input type="checkbox" id="toggle-collision" checked />
           <span class="swatch collision" aria-hidden="true"></span>
-          반투명 와이어 — 해골 고정 객체와 동일 방식
+          반투명 와이어 — 창고·1층 공통 (화면 분할 시 1층은 좌·우 모두)
         </label>
-        <p class="hint">전처리: <code>npm run preprocess:warehouse:voxel</code> · 구역이 비면 기존 collision.glb 삭제 후 재생성</p>
+        <p class="hint">
+          창고: <code>npm run preprocess:warehouse:voxel</code> ·
+          1층: <code>npm run preprocess:mc-in-1f:voxel</code>
+        </p>
       </fieldset>
     </div>
     <div id="split-labels" hidden>

@@ -155,8 +155,8 @@ export function createAholoLodBridge(
     minLevel: options?.minLevel ?? 0,
     hysteresisTicks: 6,
     backgroundPenalty: 0.3,
-    outsidePenalty: 2.2,
-    behindPenalty: 1.5,
+    outsidePenalty: 2.8,
+    behindPenalty: 2.0,
     schedulerParallelCounts: 3,
   }) as unknown as LodSplat;
   const aholoCamera = new PerspectiveCamera();
@@ -247,9 +247,9 @@ export function createAholoLodBridge(
         if (!parsed || parsed.rowCount === 0 || sel.count === 0) continue;
 
         const srcData = new Uint8Array(parsed.data);
-
+        
         // 🔥 핵심 1: 각 청크마다 지멋대로인 크기를 믿지 않고, 첫 번째 청크에서 정한 기준 보폭(baseStride)으로 강제 통일합니다.
-        const rowStride = baseStride;
+        const rowStride = baseStride; 
         const start = sel.offset * rowStride;
         let end = start + sel.count * rowStride;
 
@@ -263,7 +263,7 @@ export function createAholoLodBridge(
 
         // 상자 크기를 초과하면 더 이상 담지 않고 중단 (안전장치)
         if (targetOffset + dataToWrite.length > mergedData.length) {
-          break;
+          break; 
         }
 
         mergedData.set(dataToWrite, targetOffset);
@@ -273,18 +273,16 @@ export function createAholoLodBridge(
           for (let c = 0; c < parsed.sh.length; c++) {
             const src = parsed.sh[c];
             const dst = mergedSh[c];
-
-            const shStride = Math.floor(
-              src.length / Math.max(1, parsed.rowCount),
-            );
+            
+            const shStride = Math.floor(src.length / Math.max(1, parsed.rowCount));
             const shStart = sel.offset * shStride;
             let shEnd = shStart + sel.count * shStride;
-
+            
             if (shEnd > src.length) shEnd = src.length; // SH도 초과하면 자름
-
+            
             const shToWrite = src.subarray(shStart, shEnd);
             const shTargetOffset = cursor * shStride;
-
+            
             if (shTargetOffset + shToWrite.length <= dst.length) {
               dst.set(shToWrite, shTargetOffset);
             }
@@ -292,7 +290,8 @@ export function createAholoLodBridge(
         }
 
         // 🔥 핵심 3: 예측값이 아니라 "실제로 성공적으로 복사한 점의 개수"만큼만 커서를 이동시킵니다.
-        cursor += Math.floor(dataToWrite.length / baseStride);
+        cursor += Math.floor(dataToWrite.length / baseStride); 
+      
       }
 
       //   await mesh.updateDataAsync(mergedData.buffer, mergedSh);
@@ -334,9 +333,9 @@ export function createAholoLodBridge(
       scheduler.tick(aholoCamera);
 
       // 🔥 엔진이 살아있는지, 데드락에 걸렸는지 확인하는 로그
-      console.log(
-        `[LoD Tick] applying 상태: ${applying}, pending 상태: ${pending}`,
-      );
+    //   console.log(
+    //     `[LoD Tick] applying 상태: ${applying}, pending 상태: ${pending}`,
+    //   );
 
       void applySelection();
     },

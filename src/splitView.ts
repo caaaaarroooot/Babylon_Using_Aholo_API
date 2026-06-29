@@ -5,6 +5,8 @@ import { Viewport } from "@babylonjs/core/Maths/math.viewport";
 
 export const LAYER_LOD = 0x1;
 export const LAYER_DIRECT = 0x2;
+/** 화면 분할 시 좌·우 모두에 표시 */
+export const LAYER_SPLIT_BOTH = LAYER_LOD | LAYER_DIRECT;
 export const LAYER_ALL = 0xffffffff;
 
 export function syncArcRotateCamera(source: ArcRotateCamera, target: ArcRotateCamera): void {

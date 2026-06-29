@@ -210,6 +210,48 @@
         opacity: 0.7;
         line-height: 1.4;
       }
+      #split-labels {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        z-index: 2;
+      }
+      #split-labels[hidden] {
+        display: none !important;
+      }
+      #split-labels span {
+        position: absolute;
+        top: 56px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        font-size: 0.82rem;
+      }
+      #split-label-left {
+        left: 25%;
+        transform: translateX(-50%);
+      }
+      #split-label-right {
+        left: 75%;
+        transform: translateX(-50%);
+      }
+      #split-divider {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        width: 2px;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.22);
+        pointer-events: none;
+        z-index: 2;
+      }
+      #split-divider[hidden] {
+        display: none !important;
+      }
       #collision-toggles {
         margin-top: 10px;
         padding: 10px 14px;
@@ -260,7 +302,27 @@
         <strong id="collision-title">충돌 검사 준비 중...</strong>
         <span id="collision-detail"></span>
       </div>
-      <p>3Dcam 창고 SOG · WASD/화살표 · 탭 전환 시 렌더 중지</p>
+      <p>3Dcam 창고 / 1층 내부 · WASD/화살표 · 탭 전환 시 렌더 중지</p>
+      <fieldset id="model-switcher">
+        <legend>장면 선택</legend>
+        <label>
+          <input type="radio" name="scene-id" value="warehouse" checked />
+          3Dcam 창고 (Chunk LoD)
+        </label>
+        <label>
+          <input type="radio" name="scene-id" value="mcIn1F" />
+          1층 내부 (LoD 없음)
+        </label>
+        <label>
+          <input type="radio" name="scene-id" value="mcIn1FLod" />
+          1층 내부 (Chunk LoD)
+        </label>
+        <p class="hint">1층은 처음 선택 시 로드 · LoD 전처리: <code>npm run preprocess:iob</code></p>
+        <label>
+          <input type="checkbox" id="toggle-split-compare" />
+          화면 분할 비교 (좌 Chunk LoD · 우 직접 로드 · 카메라 동기화)
+        </label>
+      </fieldset>
       <fieldset id="collision-toggles">
         <legend>Collision mesh (voxel)</legend>
         <label>
@@ -271,6 +333,11 @@
         <p class="hint">전처리: <code>npm run preprocess:warehouse:voxel</code> · 구역이 비면 기존 collision.glb 삭제 후 재생성</p>
       </fieldset>
     </div>
+    <div id="split-labels" hidden>
+      <span id="split-label-left">좌 · Chunk LoD</span>
+      <span id="split-label-right">우 · 직접 로드</span>
+    </div>
+    <div id="split-divider" hidden></div>
     <div id="lod-status" hidden>
       <strong>LoD 스플랫</strong>
       <span id="lod-status-loaded">—</span>

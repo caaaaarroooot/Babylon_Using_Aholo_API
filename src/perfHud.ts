@@ -9,7 +9,7 @@ function formatCount(value: number): string {
 export function setupPerfHud(
   scene: Scene,
   engine: Engine,
-  lodBridge: AholoLodBridge | null
+  getLodBridge: () => AholoLodBridge | null
 ) {
   const panel = document.getElementById("perf-status");
   const fpsEl = document.getElementById("perf-fps");
@@ -43,6 +43,7 @@ export function setupPerfHud(
       resEl.textContent = `${renderW}×${renderH} · 캔버스 ${canvasW}×${canvasH} · ${resolutionPct}%`;
     }
     if (splatEl) {
+      const lodBridge = getLodBridge();
       if (lodBridge) {
         const { loadedCount, totalCount } = lodBridge.stats;
         const pct = totalCount > 0 ? ((loadedCount / totalCount) * 100).toFixed(1) : "0.0";

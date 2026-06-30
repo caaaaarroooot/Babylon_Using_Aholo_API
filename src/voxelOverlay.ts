@@ -8,12 +8,10 @@ import {
   StandardMaterial,
 } from "@babylonjs/core";
 
-/** 면은 거의 투명, 선만 보이게 */
-const AHOLO_FILL_ALPHA = 0.04;
-const AHOLO_FILL_ALPHA_NO_EDGES = 0.12;
-const AHOLO_EDGE_ALPHA = 0.9;
-const AHOLO_EDGE_WIDTH = 0.45;
-const MAX_VERTICES_FOR_EDGES = 80_000;
+/** Aholo voxel 면 — 거의 투명, 엣지만 선명하게 */
+const VOXEL_FILL_ALPHA = 0.03;
+const VOXEL_EDGE_ALPHA = 0.92;
+const VOXEL_EDGE_WIDTH = 0.55;
 
 export type VoxelOverlay = {
   root: AbstractMesh;
@@ -22,44 +20,54 @@ export type VoxelOverlay = {
   dispose: () => void;
 };
 
-function paintCollisionMesh(
+export type VoxelOverlayOptions = {
+  label?: string;
+  color?: Color3;
+  edgeWidth?: number;
+  /** 매 프레임 따라갈 splat (장면 전환 시 동적) */
+  resolveSplatMesh?: () => AbstractMesh | null;
+  syncTransform?: (splatMesh: AbstractMesh, colliderRoot: AbstractMesh) => void;
+};
+
+function paintAholoVoxelMesh(
   mesh: AbstractMesh,
   color: Color3,
   edgeWidth: number
-): boolean {
-  const mat = new StandardMaterial(`${mesh.name}_collisionVis`, mesh.getScene());
-  mat.diffuseColor = color.scale(0.55);
-  mat.emissiveColor = color.scale(0.75);
+): void {
+  const mat = new StandardMaterial(`${mesh.name}_voxelVis`, mesh.getScene());
+  mat.diffuseColor = color.scale(0.5);
+  mat.emissiveColor = color.scale(0.85);
   mat.disableLighting = true;
   mat.backFaceCulling = false;
   mat.disableDepthWrite = true;
   mat.transparencyMode = StandardMaterial.MATERIAL_ALPHABLEND;
+  mat.alpha = VOXEL_FILL_ALPHA;
+  mat.wireframe = false;
   mesh.material = mat;
   mesh.isPickable = false;
   mesh.renderingGroupId = 2;
 
-  let hasEdges = false;
-  if (mesh instanceof Mesh && mesh.getTotalVertices() <= MAX_VERTICES_FOR_EDGES) {
-    try {
-      mesh.enableEdgesRendering();
-      mesh.edgesWidth = edgeWidth;
-      mesh.edgesColor = new Color4(color.r, color.g, color.b, AHOLO_EDGE_ALPHA);
-      hasEdges = true;
-    } catch (err) {
-      console.warn(`[collision] edges skipped for ${mesh.name}:`, err);
-    }
-  }
+  if (!(mesh instanceof Mesh)) return;
 
-  mat.alpha = hasEdges ? AHOLO_FILL_ALPHA : AHOLO_FILL_ALPHA_NO_EDGES;
-  return hasEdges;
+  try {
+    mesh.enableEdgesRendering();
+    mesh.edgesWidth = edgeWidth;
+    mesh.edgesColor = new Color4(color.r, color.g, color.b, VOXEL_EDGE_ALPHA);
+  } catch (err) {
+    console.warn(`[collision] edges failed for ${mesh.name}:`, err);
+    mat.alpha = 0.08;
+  }
 }
 
-function collectColliderMeshes(colliderRoot: AbstractMesh): AbstractMesh[] {
-  const meshes = colliderRoot.getChildMeshes(false);
-  if (meshes.length === 0 && colliderRoot.getTotalVertices() > 0) {
-    meshes.push(colliderRoot);
+function collectOverlayMeshes(colliderRoot: AbstractMesh): Mesh[] {
+  const out: Mesh[] = [];
+  const candidates = [colliderRoot, ...colliderRoot.getChildMeshes(true)];
+  for (const node of candidates) {
+    if (!(node instanceof Mesh) || node.getTotalVertices() <= 0) continue;
+    if (node.name.toLowerCase().includes("spawn_point")) continue;
+    out.push(node);
   }
-  return meshes;
+  return out;
 }
 
 function syncColliderTransform(splatMesh: AbstractMesh, colliderRoot: AbstractMesh) {
@@ -74,21 +82,27 @@ function syncColliderTransform(splatMesh: AbstractMesh, colliderRoot: AbstractMe
   }
 }
 
-export async function attachVoxelOverlay(
-  scene: Scene,
-  splatMesh: AbstractMesh,
-  collisionGlbUrl: string,
-  options?: { label?: string; color?: Color3; edgeWidth?: number }
-): Promise<VoxelOverlay> {
-  const label = options?.label ?? "voxelOverlay";
-  const color = options?.color ?? new Color3(0.15, 0.75, 1.0);
-  const edgeWidth = options?.edgeWidth ?? AHOLO_EDGE_WIDTH;
-
+async function loadOverlayTemplate(scene: Scene, collisionGlbUrl: string) {
+  console.info(`[collision] Aholo voxel wire: ${collisionGlbUrl}`);
   const loaded = await ImportMeshAsync(collisionGlbUrl, scene);
   const template = loaded.meshes[0];
   if (!template) {
     throw new Error(`collision mesh not found: ${collisionGlbUrl}`);
   }
+  return template;
+}
+
+export async function attachVoxelOverlay(
+  scene: Scene,
+  splatMesh: AbstractMesh,
+  collisionGlbUrl: string,
+  options?: VoxelOverlayOptions
+): Promise<VoxelOverlay> {
+  const label = options?.label ?? "voxelOverlay";
+  const color = options?.color ?? new Color3(0.15, 0.75, 1.0);
+  const edgeWidth = options?.edgeWidth ?? VOXEL_EDGE_WIDTH;
+
+  const template = await loadOverlayTemplate(scene, collisionGlbUrl);
   template.setEnabled(false);
 
   const root = template.clone(`${label}_collisionRoot`, null);
@@ -100,30 +114,32 @@ export async function attachVoxelOverlay(
   root.isVisible = true;
   scene.addMesh(root);
 
-  const meshes = collectColliderMeshes(root);
+  const meshes = collectOverlayMeshes(root);
   if (meshes.length === 0) {
     throw new Error(`collision mesh has no geometry: ${collisionGlbUrl}`);
   }
 
+  const vertTotal = meshes.reduce((n, m) => n + m.getTotalVertices(), 0);
   console.info(
-    `[collision] ${meshes.length} part(s):`,
-    meshes.map((m) => `${m.name}(${m.getTotalVertices().toLocaleString()}v)`).join(", ")
+    `[collision] Aholo voxel ${meshes.length} part(s), ${vertTotal.toLocaleString()}v:`,
+    meshes.map((m) => m.name).join(", ")
   );
 
   for (const mesh of meshes) {
     mesh.setEnabled(true);
     mesh.isVisible = true;
-    const hasEdges = paintCollisionMesh(mesh, color, edgeWidth);
-    if (!hasEdges) {
-      console.warn(
-        `[collision] ${mesh.name}: 엣지 생략 (${mesh.getTotalVertices().toLocaleString()}v) — collision.glb 재생성 권장`
-      );
-    }
+    paintAholoVoxelMesh(mesh, color, edgeWidth);
   }
 
-  syncColliderTransform(splatMesh, root);
+  const applySync = (splat: AbstractMesh) => {
+    (options?.syncTransform ?? syncColliderTransform)(splat, root);
+  };
+
+  applySync(splatMesh);
   const syncObserver = scene.onBeforeRenderObservable.add(() => {
-    syncColliderTransform(splatMesh, root);
+    const anchor = options?.resolveSplatMesh?.() ?? splatMesh;
+    if (!anchor) return;
+    applySync(anchor);
   });
 
   return {

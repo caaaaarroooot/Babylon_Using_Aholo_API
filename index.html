@@ -293,6 +293,75 @@
         font-size: 0.78rem;
         opacity: 0.7;
       }
+      #robot-mode-toggles {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.88rem;
+        max-width: 520px;
+        pointer-events: auto;
+      }
+      #robot-mode-toggles legend {
+        padding: 0 4px;
+        font-size: 0.82rem;
+        opacity: 0.85;
+      }
+      #robot-mode-toggles label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 6px 0;
+        cursor: pointer;
+        user-select: none;
+      }
+      #robot-mode-toggles input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+        accent-color: #7dff9a;
+        cursor: pointer;
+      }
+      #robot-mode-toggles .hint {
+        margin: 8px 0 0;
+        font-size: 0.78rem;
+        opacity: 0.7;
+      }
+      #robot-mode-exit {
+        margin-top: 10px;
+        padding: 10px 14px;
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(125, 255, 154, 0.35);
+        font-size: 0.88rem;
+        max-width: 520px;
+        pointer-events: auto;
+      }
+      #robot-mode-exit strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 0.82rem;
+        opacity: 0.9;
+      }
+      #btn-exit-robot-mode {
+        width: 100%;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 120, 120, 0.55);
+        background: rgba(180, 40, 40, 0.45);
+        color: #fff;
+        font-size: 0.88rem;
+        cursor: pointer;
+        user-select: none;
+      }
+      #btn-exit-robot-mode:hover {
+        background: rgba(200, 50, 50, 0.65);
+      }
+      #robot-mode-exit .hint {
+        margin: 8px 0 0;
+        font-size: 0.78rem;
+        opacity: 0.7;
+      }
     </style>
   </head>
   <body>
@@ -306,11 +375,11 @@
       <fieldset id="model-switcher">
         <legend>장면 선택</legend>
         <label>
-          <input type="radio" name="scene-id" value="warehouse" checked />
+          <input type="radio" name="scene-id" value="warehouse" />
           3Dcam 창고 (Chunk LoD)
         </label>
         <label>
-          <input type="radio" name="scene-id" value="mcIn1F" />
+          <input type="radio" name="scene-id" value="mcIn1F" checked />
           1층 내부 (LoD 없음)
         </label>
         <label>
@@ -326,15 +395,31 @@
       <fieldset id="collision-toggles">
         <legend>Collision mesh (voxel 와이어)</legend>
         <label>
-          <input type="checkbox" id="toggle-collision" checked />
+          <input type="checkbox" id="toggle-collision" />
           <span class="swatch collision" aria-hidden="true"></span>
-          반투명 와이어 — 창고·1층 공통 (화면 분할 시 1층은 좌·우 모두)
+          반투명 와이어 — Aholo voxel (<code>collision.glb</code>, physics와 동일)
         </label>
         <p class="hint">
           창고: <code>npm run preprocess:warehouse:voxel</code> ·
           1층: <code>npm run preprocess:mc-in-1f:voxel</code>
         </p>
       </fieldset>
+      <fieldset id="robot-mode-toggles" hidden>
+        <legend>로봇 조종 (Phase 1)</legend>
+        <label>
+          <input type="checkbox" id="toggle-robot-mode" checked />
+          Husky 로봇 — 복셀 충돌 · WASD/QE 이동 · 카메라 추적
+        </label>
+        <p class="hint">
+          1층 단일 뷰(LoD 없음) · WASD(로봇 기준) · Q/E 상하 · ←→ 회전 ·
+          모델: <code>husky_comp_2.glb</code>
+        </p>
+      </fieldset>
+      <div id="robot-mode-exit" hidden>
+        <strong>로봇 조종 중</strong>
+        <button type="button" id="btn-exit-robot-mode">로봇 조종 끄기</button>
+        <p class="hint">WASD 이동 · Q/E 상하 · ←→ 로봇 회전 · ↑↓ 시점 · 마우스 줌</p>
+      </div>
     </div>
     <div id="split-labels" hidden>
       <span id="split-label-left">좌 · Chunk LoD</span>

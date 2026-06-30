@@ -9,6 +9,7 @@
     "preprocess:iob:warehouse": "node scripts/preprocess-warehouse-only.mjs",
     "preprocess:warehouse:voxel": "node scripts/build-warehouse-voxel.mjs",
     "preprocess:mc-in-1f:voxel": "node scripts/build-mc-in-1f-voxel.mjs",
+    "preprocess:mc-in-1f:spawn": "node scripts/inject-spawn-point.mjs public/models/iob-voxel/mc-in-1f/collision.glb",
     "preprocess:warehouse:outliers": "node scripts/build-warehouse-outliers.mjs",
     "dev": "vite",
     "dev:force": "vite --force",

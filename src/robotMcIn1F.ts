@@ -29,7 +29,7 @@ import {
   isIntentInBlockedHemisphere,
   isRobotWallBlockedAt,
   normalizeIntentXZ,
-  type RobotWallGrid,
+//   type RobotWallGrid,
 } from "./robotWallCollision";
 
 const HUSKY_URL = "/models/iob/husky_comp_2.glb";
@@ -397,7 +397,7 @@ export async function createRobotMcIn1FSession(
   const robotRoot = new TransformNode("robotRoot", scene);
   await loadHusky(scene, robotRoot);
 
-  const { body: robotBody, hull: robotHull } = attachRobotHull(scene, robotRoot, tracker);
+  const { body: robotBody } = attachRobotHull(scene, robotRoot, tracker);
 
   const { min, max } = getWorldBounds(staticVoxelRoot);
   const extent = max.subtract(min);
